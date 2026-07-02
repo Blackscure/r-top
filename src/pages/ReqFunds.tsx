@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
+import axios from "axios"
 
 interface FundRequest {
   id: number
@@ -30,10 +32,12 @@ export default function ReqFunds() {
       setError("Please fill in all fields")
       return
     }
-    if (!/^\d{10,}$/.test(phone.replace(/\s/g, ""))) {
+    if (!/^\d{9,}$/.test(phone.replace(/\s/g, ""))) {
       setError("Please enter a valid phone number")
       return
     }
+    const rawPhone = phone.replace(/\s/g, "")
+    const formattedPhone = rawPhone.startsWith("0") ? "254" + rawPhone.slice(1) : rawPhone
     const amt = parseFloat(amount)
     if (isNaN(amt) || amt <= 0) {
       setError("Please enter a valid amount")
@@ -42,7 +46,7 @@ export default function ReqFunds() {
 
     const newRequest: FundRequest = {
       id: Date.now(),
-      phone,
+      phone: formattedPhone,
       amount: amt,
       status: "pending",
       date: new Date().toLocaleDateString(),
@@ -51,6 +55,20 @@ export default function ReqFunds() {
     const updated = [newRequest, ...requests]
     setRequests(updated)
     localStorage.setItem("fundRequests", JSON.stringify(updated))
+
+    const token = localStorage.getItem("access_token")
+
+    axios.post("http://127.0.0.1:8000/apps/wallet/api/v1/transactions/stk-push/", {
+      phone_number: formattedPhone,
+      amount: amt,
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(() => toast.success("Request submitted successfully"))
+      .catch((err) => toast.error(err.response?.data?.message || err.message))
+
     setPhone("")
     setAmount("")
   }
@@ -71,7 +89,7 @@ export default function ReqFunds() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" type="tel" placeholder="+1 234 567 8900" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Input id="phone" type="tel" placeholder="07XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">Amount ($)</Label>

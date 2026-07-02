@@ -10,21 +10,24 @@ export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError("")
     if (!email || !password) {
       setError("Please fill in all fields")
       return
     }
-    const success = login(email, password)
-    if (success) {
+    setLoading(true)
+    const result = await login(email, password)
+    setLoading(false)
+    if (result.success) {
       navigate("/dashboard/req-funds")
     } else {
-      setError("Invalid email or password")
+      setError(result.error || "Invalid email or password")
     }
   }
 
@@ -48,7 +51,7 @@ export default function Login() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">Login</Button>
+            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white" disabled={loading}>{loading ? "Logging in..." : "Login"}</Button>
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
               <Link to="/register" className="text-primary underline underline-offset-4">Register</Link>
