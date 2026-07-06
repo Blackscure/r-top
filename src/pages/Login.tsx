@@ -25,7 +25,7 @@ export default function Login() {
     const result = await login(email, password)
     setLoading(false)
     if (result.success) {
-      navigate("/dashboard/req-funds")
+      navigate("/req-funds")
     } else {
       setError(result.error || "Invalid email or password")
     }

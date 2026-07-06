@@ -16,7 +16,7 @@ export default function Sidebar() {
 
       <nav className="flex-1 p-4 space-y-2">
         <NavLink
-          to="/dashboard/req-funds"
+          to="/req-funds"
           className={({ isActive }) =>
             `block px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               isActive
