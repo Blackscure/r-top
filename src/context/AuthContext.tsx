@@ -13,7 +13,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  sendOtp: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>
+  verifyLogin: (email: string, otp: string, pin: string) => Promise<{ success: boolean; error?: string }>
   register: (name: string, email: string, password: string) => boolean
   logout: () => void
 }
@@ -28,20 +29,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored) setUser(JSON.parse(stored))
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const sendOtp = async (email: string) => {
     try {
       const response = await api.post(
-        "http://127.0.0.1:8000/apps/wallet/api/v1/authentication/login/",
-        { email, password },
+        "http://127.0.0.1:8000/apps/wallet/api/v1/authentication/send-otp/",
+        { email },
+      )
+      return { success: true, message: response.data.message || "OTP sent successfully" }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } }
+      return { success: false, error: err.response?.data?.message || "Failed to send OTP" }
+    }
+  }
+
+  const verifyLogin = async (email: string, otp: string, pin: string) => {
+    try {
+      const response = await api.post(
+        "http://127.0.0.1:8000/apps/wallet/api/v1/authentication/verify-login/",
+        { email, otp, pin },
       )
       const userData = response.data.data.user
       setUser(userData)
       localStorage.setItem("access_token", response.data.data.access_token)
+      localStorage.setItem("refresh_token", response.data.data.refresh_token)
       localStorage.setItem("user", JSON.stringify(userData))
       return { success: true }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } }
-      return { success: false, error: err.response?.data?.message || "Login failed" }
+      return { success: false, error: err.response?.data?.message || "Verification failed" }
     }
   }
 
@@ -57,11 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
     localStorage.removeItem("user")
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, sendOtp, verifyLogin, register, logout }}>
       {children}
     </AuthContext.Provider>
   )
